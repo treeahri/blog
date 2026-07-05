@@ -8,11 +8,18 @@ interface Props {
   onRoleChange: (role: PhotoRole) => void
   onCaptionChange: (caption: string) => void
   onRemove: () => void
+  onImageClick: () => void
 }
 
 const ROLE_OPTIONS: PhotoRole[] = ['hero', 'interior', 'menu', 'food', 'etc']
 
-export function SortablePhotoItem({ photo, onRoleChange, onCaptionChange, onRemove }: Props) {
+export function SortablePhotoItem({
+  photo,
+  onRoleChange,
+  onCaptionChange,
+  onRemove,
+  onImageClick,
+}: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: photo.id,
   })
@@ -39,10 +46,17 @@ export function SortablePhotoItem({ photo, onRoleChange, onCaptionChange, onRemo
         ☰
       </button>
 
-      <PhotoImg
-        dataUrl={photo.dataUrl}
-        className="h-20 w-20 shrink-0 rounded object-cover"
-      />
+      <button
+        type="button"
+        onClick={onImageClick}
+        aria-label="사진 크게 보기"
+        className="shrink-0"
+      >
+        <PhotoImg
+          dataUrl={photo.dataUrl}
+          className="h-20 w-20 rounded object-cover"
+        />
+      </button>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex gap-1">
@@ -61,12 +75,12 @@ export function SortablePhotoItem({ photo, onRoleChange, onCaptionChange, onRemo
             </button>
           ))}
         </div>
-        <input
-          type="text"
+        <textarea
           value={photo.caption}
           onChange={(e) => onCaptionChange(e.target.value)}
           placeholder={photo.role === 'menu' ? '메뉴 코멘트' : '이 사진에 대한 코멘트'}
-          className="w-full rounded border border-gray-200 px-2 py-1 text-sm"
+          rows={3}
+          className="w-full resize-y rounded border border-gray-200 px-2 py-1 text-sm"
         />
       </div>
 

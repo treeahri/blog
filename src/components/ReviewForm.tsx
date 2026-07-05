@@ -91,8 +91,8 @@ export function ReviewForm({ form, onChange }: Props) {
 
       <Field label="인트로 (방문 계기 / 첫인상)">
         <textarea
-          className={inputClass}
-          rows={3}
+          className={`${inputClass} resize-y`}
+          rows={7}
           value={form.intro}
           onChange={(e) => onChange({ intro: e.target.value })}
         />
@@ -100,8 +100,8 @@ export function ReviewForm({ form, onChange }: Props) {
 
       <Field label="메뉴 설명 (메뉴판 사진 아래에 들어갈 텍스트)">
         <textarea
-          className={inputClass}
-          rows={2}
+          className={`${inputClass} resize-y`}
+          rows={5}
           value={form.menuNote}
           onChange={(e) => onChange({ menuNote: e.target.value })}
         />
@@ -124,8 +124,8 @@ export function ReviewForm({ form, onChange }: Props) {
 
       <Field label="총평 (마무리 한줄평)">
         <textarea
-          className={inputClass}
-          rows={2}
+          className={`${inputClass} resize-y`}
+          rows={5}
           value={form.summary}
           onChange={(e) => onChange({ summary: e.target.value })}
         />
