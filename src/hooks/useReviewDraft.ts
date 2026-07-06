@@ -99,6 +99,11 @@ export function useReviewDraft() {
     await clearDraft()
   }
 
+  function loadSnapshot(snapshot: { photos: ReviewPhoto[]; form: ReviewFormData }) {
+    setPhotos(snapshot.photos)
+    setForm(snapshot.form)
+  }
+
   const heroPhoto = useMemo(() => photos.find((p) => p.role === 'hero'), [photos])
   const interiorPhotos = useMemo(() => photos.filter((p) => p.role === 'interior'), [photos])
   const menuPhotos = useMemo(() => photos.filter((p) => p.role === 'menu'), [photos])
@@ -121,6 +126,7 @@ export function useReviewDraft() {
     reorderPhotos,
     updateForm,
     resetDraft,
+    loadSnapshot,
   }
 }
 

@@ -83,7 +83,7 @@ export function OneShotCopySection({ draft }: Props) {
       await clearUploadedPhotos(settings)
       clearLastUpload()
       setLastUpload(null)
-      setCleanupStatus('저장소의 사진을 모두 삭제하고, 과거 기록도 함께 정리했어요.')
+      setCleanupStatus('저장소의 사진과 동기화된 초안을 모두 삭제하고, 과거 기록도 함께 정리했어요.')
     } catch (err) {
       setCleanupStatus(err instanceof Error ? err.message : '삭제에 실패했어요. 다시 시도해주세요.')
     }

@@ -7,7 +7,7 @@ import {
   downloadPhoto,
   orderedPhotosForExport,
 } from '../lib/export'
-import { PHOTO_ROLE_LABEL } from '../types'
+import { DraftSyncPanel } from './DraftSyncPanel'
 import { OneShotCopySection } from './OneShotCopySection'
 import { PhotoImg } from './PhotoImg'
 
@@ -48,7 +48,10 @@ export function ExportPanel({ draft }: Props) {
     <section className="mx-auto max-w-xl px-4 py-6">
       <h2 className="mb-3 text-sm font-semibold text-gray-700">네이버 블로그에 옮기기</h2>
 
-      <OneShotCopySection draft={draft} />
+      <DraftSyncPanel draft={draft} />
+      <div className="mt-4">
+        <OneShotCopySection draft={draft} />
+      </div>
 
       <details className="mt-4">
         <summary className="cursor-pointer text-xs font-medium text-gray-500">
@@ -81,7 +84,7 @@ export function ExportPanel({ draft }: Props) {
                 <div key={photo.id} className="flex items-center gap-3 rounded border border-gray-200 p-2">
                   <PhotoImg dataUrl={photo.dataUrl} className="h-12 w-12 rounded object-cover" />
                   <span className="flex-1 truncate text-sm text-gray-600">
-                    사진 {i + 1} · {PHOTO_ROLE_LABEL[photo.role]}
+                    사진{i + 1}
                     {copied && <span className="ml-1 text-green-600">✓</span>}
                   </span>
                   <button

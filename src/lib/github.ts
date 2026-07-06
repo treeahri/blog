@@ -86,6 +86,54 @@ async function errorMessage(res: Response): Promise<string> {
   return `GitHub 요청 실패 (${res.status})${hint}`
 }
 
+/** base64-encodes a unicode string (e.g. Korean text) the way GitHub's Contents API expects. */
+function b64EncodeUnicode(text: string): string {
+  return btoa(encodeURIComponent(text).replace(/%([0-9A-F]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16))))
+}
+
+function b64DecodeUnicode(base64: string): string {
+  const binary = atob(base64.replace(/\n/g, ''))
+  return decodeURIComponent(
+    binary
+      .split('')
+      .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+      .join(''),
+  )
+}
+
+async function readFileSha(settings: GitHubSettings, path: string): Promise<string | undefined> {
+  const res = await fetch(contentsUrl(settings, path), { headers: headers(settings) })
+  if (res.status === 404) return undefined
+  if (!res.ok) throw new Error(await errorMessage(res))
+  const json = await res.json()
+  return json.sha
+}
+
+/** Reads a text file from the repo, or null if it doesn't exist yet. */
+export async function readRepoFile(settings: GitHubSettings, path: string): Promise<string | null> {
+  const res = await fetch(contentsUrl(settings, path), { headers: headers(settings) })
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(await errorMessage(res))
+  const json = await res.json()
+  return b64DecodeUnicode(json.content)
+}
+
+/** Writes (creates or overwrites) a text file in the repo. */
+export async function writeRepoFile(
+  settings: GitHubSettings,
+  path: string,
+  content: string,
+  message: string,
+): Promise<void> {
+  const sha = await readFileSha(settings, path)
+  const res = await fetch(contentsUrl(settings, path), {
+    method: 'PUT',
+    headers: headers(settings),
+    body: JSON.stringify({ message, content: b64EncodeUnicode(content), ...(sha ? { sha } : {}) }),
+  })
+  if (!res.ok) throw new Error(await errorMessage(res))
+}
+
 export async function uploadPhotoToGitHub(
   settings: GitHubSettings,
   path: string,
@@ -123,10 +171,11 @@ interface TreeEntry {
 }
 
 /**
- * Wipes every uploaded photo from the repo and rewrites the branch to a single
- * parentless commit of whatever is left (README and the like). Photos always
- * live under posts/, so we drop all of those blobs regardless of which batch
- * they came from — tracking only the last upload stranded earlier ones forever.
+ * Wipes every uploaded photo (and the synced draft) from the repo and rewrites
+ * the branch to a single parentless commit of whatever is left (README and the
+ * like). Photos live under posts/ and the draft snapshot under drafts/, so we
+ * drop all blobs under either prefix regardless of which batch they came from
+ * — tracking only the last upload stranded earlier ones forever.
  * A plain Contents-API delete would keep every photo browsable in the public
  * repo's history; resetting the history is what actually hides deleted photos
  * from visitors. (Orphaned objects may linger on GitHub's servers until garbage
@@ -148,7 +197,10 @@ export async function clearUploadedPhotos(settings: GitHubSettings): Promise<voi
   // snapshot, so refuse rather than lose data (needs ~100k files to happen).
   if (oldTree.truncated) throw new Error('저장소에 파일이 너무 많아 자동 정리를 못 해요.')
   const remaining = oldTree.tree
-    .filter((entry) => entry.type === 'blob' && !entry.path.startsWith('posts/'))
+    .filter(
+      (entry) =>
+        entry.type === 'blob' && !entry.path.startsWith('posts/') && !entry.path.startsWith('drafts/'),
+    )
     .map(({ path, mode, type, sha }) => ({ path, mode, type, sha }))
   const newTree = await githubJson<{ sha: string }>(settings, '/git/trees', {
     method: 'POST',
