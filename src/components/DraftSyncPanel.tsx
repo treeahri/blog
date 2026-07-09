@@ -18,7 +18,10 @@ export function DraftSyncPanel({ draft }: Props) {
     setStatus({ kind: 'busy', message: '저장 중…' })
     try {
       await saveDraftToGitHub(settings, { photos: draft.photos, form: draft.form })
-      setStatus({ kind: 'done', message: '초안을 저장했어요. 다른 기기에서 "초안 불러오기"를 누르면 이어서 작업할 수 있어요.' })
+      setStatus({
+        kind: 'done',
+        message: `${settings.owner}/${settings.repo}에 초안을 저장했어요 (사진 ${draft.photos.length}장). 다른 기기에서 "초안 불러오기"를 누르면 이어서 작업할 수 있어요.`,
+      })
     } catch (err) {
       setStatus({ kind: 'error', message: err instanceof Error ? err.message : '저장에 실패했어요.' })
     }
@@ -31,11 +34,20 @@ export function DraftSyncPanel({ draft }: Props) {
     try {
       const snapshot = await loadDraftFromGitHub(settings)
       if (!snapshot) {
-        setStatus({ kind: 'error', message: '저장된 초안이 없어요. 다른 기기에서 먼저 "초안 저장"을 눌러주세요.' })
+        setStatus({
+          kind: 'error',
+          message: `${settings.owner}/${settings.repo}에 저장된 초안이 없어요. 다른 기기에서 먼저 "초안 저장"을 눌렀는지, 그 기기의 GitHub 설정(아이디/저장소)이 여기와 같은지 확인해 주세요.`,
+        })
         return
       }
       draft.loadSnapshot(snapshot)
-      setStatus({ kind: 'done', message: '초안을 불러왔어요.' })
+      const photoCount = snapshot.photos?.filter((p) => p?.dataUrl).length ?? 0
+      const title = snapshot.form?.restaurantName?.trim()
+      setStatus({
+        kind: 'done',
+        message: `${settings.owner}/${settings.repo}에서 초안을 불러왔어요 — ${title || '제목 없음'} · 사진 ${photoCount}장.`,
+      })
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       setStatus({ kind: 'error', message: err instanceof Error ? err.message : '불러오기에 실패했어요.' })
     }
