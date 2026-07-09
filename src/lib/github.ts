@@ -68,10 +68,10 @@ function contentsUrl(settings: GitHubSettings, path: string): string {
   return apiUrl(settings, `/contents/${encodedPath}`)
 }
 
-function headers(settings: GitHubSettings): HeadersInit {
+function headers(settings: GitHubSettings, accept = 'application/vnd.github+json'): HeadersInit {
   return {
     Authorization: `Bearer ${settings.token}`,
-    Accept: 'application/vnd.github+json',
+    Accept: accept,
     'X-GitHub-Api-Version': '2022-11-28',
   }
 }
@@ -91,16 +91,6 @@ function b64EncodeUnicode(text: string): string {
   return btoa(encodeURIComponent(text).replace(/%([0-9A-F]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16))))
 }
 
-function b64DecodeUnicode(base64: string): string {
-  const binary = atob(base64.replace(/\n/g, ''))
-  return decodeURIComponent(
-    binary
-      .split('')
-      .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
-      .join(''),
-  )
-}
-
 async function readFileSha(settings: GitHubSettings, path: string): Promise<string | undefined> {
   const res = await fetch(contentsUrl(settings, path), { headers: headers(settings) })
   if (res.status === 404) return undefined
@@ -109,13 +99,18 @@ async function readFileSha(settings: GitHubSettings, path: string): Promise<stri
   return json.sha
 }
 
-/** Reads a text file from the repo, or null if it doesn't exist yet. */
+/**
+ * Reads a text file from the repo, or null if it doesn't exist yet.
+ * Uses the raw media type: the default JSON response omits `content`
+ * for files over 1MB, and a synced draft with photos always exceeds that.
+ */
 export async function readRepoFile(settings: GitHubSettings, path: string): Promise<string | null> {
-  const res = await fetch(contentsUrl(settings, path), { headers: headers(settings) })
+  const res = await fetch(contentsUrl(settings, path), {
+    headers: headers(settings, 'application/vnd.github.raw+json'),
+  })
   if (res.status === 404) return null
   if (!res.ok) throw new Error(await errorMessage(res))
-  const json = await res.json()
-  return b64DecodeUnicode(json.content)
+  return res.text()
 }
 
 /** Writes (creates or overwrites) a text file in the repo. */
