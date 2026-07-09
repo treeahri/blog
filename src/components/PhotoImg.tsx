@@ -24,5 +24,5 @@ export function PhotoImg({ dataUrl, alt = '', className }: Props) {
   }, [dataUrl])
 
   if (!objectUrl) return null
-  return <img src={objectUrl} alt={alt} className={className} />
+  return <img src={objectUrl} alt={alt} className={className} loading="lazy" decoding="async" />
 }

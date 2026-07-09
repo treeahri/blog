@@ -99,9 +99,11 @@ export function useReviewDraft() {
     await clearDraft()
   }
 
+  // A synced snapshot may come from an older app version, so missing form
+  // fields fall back to defaults instead of crashing the preview.
   function loadSnapshot(snapshot: { photos: ReviewPhoto[]; form: ReviewFormData }) {
-    setPhotos(snapshot.photos)
-    setForm(snapshot.form)
+    setPhotos((snapshot.photos ?? []).filter((p) => p?.dataUrl))
+    setForm({ ...createEmptyFormData(), ...snapshot.form })
   }
 
   const heroPhoto = useMemo(() => photos.find((p) => p.role === 'hero'), [photos])
