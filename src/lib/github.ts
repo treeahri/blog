@@ -103,14 +103,37 @@ async function readFileSha(settings: GitHubSettings, path: string): Promise<stri
  * Reads a text file from the repo, or null if it doesn't exist yet.
  * Uses the raw media type: the default JSON response omits `content`
  * for files over 1MB, and a synced draft with photos always exceeds that.
+ * `no-store` is required: GitHub reuses the blob sha as ETag for every
+ * media type, so a cached default-JSON response revalidates as 304 and
+ * shadows the raw body forever.
  */
 export async function readRepoFile(settings: GitHubSettings, path: string): Promise<string | null> {
   const res = await fetch(contentsUrl(settings, path), {
     headers: headers(settings, 'application/vnd.github.raw+json'),
+    cache: 'no-store',
   })
   if (res.status === 404) return null
   if (!res.ok) throw new Error(await errorMessage(res))
-  return res.text()
+  const text = await res.text()
+  // If a proxy or extension drops the Accept header, the API answers with
+  // file metadata instead of the raw body — follow its download_url.
+  const meta = parseContentsMetadata(text)
+  if (!meta) return text
+  const raw = await fetch(meta.download_url, { cache: 'no-store' })
+  if (!raw.ok) throw new Error(`GitHub 요청 실패 (${raw.status})`)
+  return raw.text()
+}
+
+function parseContentsMetadata(text: string): { download_url: string } | null {
+  try {
+    const json = JSON.parse(text)
+    if (json && json.type === 'file' && typeof json.download_url === 'string' && 'encoding' in json) {
+      return json
+    }
+  } catch {
+    // raw content that isn't JSON
+  }
+  return null
 }
 
 /** Writes (creates or overwrites) a text file in the repo. */
