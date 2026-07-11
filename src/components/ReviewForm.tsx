@@ -107,21 +107,6 @@ export function ReviewForm({ form, onChange }: Props) {
         />
       </Field>
 
-      <Field label="별점">
-        <select
-          className={inputClass}
-          value={form.rating}
-          onChange={(e) => onChange({ rating: Number(e.target.value) })}
-        >
-          {[5, 4, 3, 2, 1].map((n) => (
-            <option key={n} value={n}>
-              {'★'.repeat(n)}
-              {'☆'.repeat(5 - n)}
-            </option>
-          ))}
-        </select>
-      </Field>
-
       <Field label="총평 (마무리 한줄평)">
         <textarea
           className={`${inputClass} resize-y`}

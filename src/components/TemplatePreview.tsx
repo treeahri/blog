@@ -126,13 +126,9 @@ export function TemplatePreview({ draft }: Props) {
         </div>
       )}
 
-      {(form.summary || form.rating) && (
+      {form.summary && (
         <NaverQuote>
-          <p className="text-lg font-bold tracking-wider text-amber-400">
-            {'★'.repeat(form.rating)}
-            {'☆'.repeat(5 - form.rating)}
-          </p>
-          {form.summary && <p>{form.summary}</p>}
+          <p>{form.summary}</p>
         </NaverQuote>
       )}
 

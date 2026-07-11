@@ -16,7 +16,6 @@ type TextStyle =
   | 'section'
   | 'info'
   | 'body'
-  | 'stars'
   | 'summary'
   | 'hashtags'
 
@@ -93,9 +92,8 @@ function buildReviewBlocks(draft: ReviewDraft): ReviewBlock[] {
     text('')
   }
 
-  if (form.summary || form.rating) {
-    text('★'.repeat(form.rating) + '☆'.repeat(5 - form.rating), 'stars')
-    if (form.summary) text(form.summary, 'summary')
+  if (form.summary) {
+    text(form.summary, 'summary')
     text('')
   }
 
@@ -167,7 +165,7 @@ export function buildReviewHtml(draft: ReviewDraft, urlByPhotoId: ReadonlyMap<st
 /** Consecutive lines of the same box kind are merged into one 인용구. */
 function boxOf(style: TextStyle): 'info' | 'summary' | null {
   if (style === 'info') return 'info'
-  if (style === 'stars' || style === 'summary') return 'summary'
+  if (style === 'summary') return 'summary'
   return null
 }
 
@@ -187,8 +185,6 @@ function textLineHtml(line: string, style: TextStyle): string {
     }
     case 'info':
       return `<p>${infoLineInner(line)}</p>`
-    case 'stars':
-      return `<p><b><span style="color: #f5a623;">${e}</span></b></p>`
     case 'hashtags':
       return `<p><span style="color: #3366cc;">${e}</span></p>`
     default:
@@ -204,7 +200,7 @@ function infoLineInner(line: string): string {
   return `<b>${label}</b> · ${value}`
 }
 
-function escapeHtml(text: string): string {
+export function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

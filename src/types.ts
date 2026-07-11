@@ -16,7 +16,6 @@ export interface ReviewFormData {
   priceRange: string
   intro: string
   menuNote: string
-  rating: number
   summary: string
   hashtags: string
 }
@@ -40,7 +39,6 @@ export function createEmptyFormData(): ReviewFormData {
     priceRange: '',
     intro: '안녕하세요. 예스데이입니다.',
     menuNote: '',
-    rating: 5,
     summary: '',
     hashtags: '',
   }
