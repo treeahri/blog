@@ -199,7 +199,10 @@ interface TreeEntry {
  * from visitors. (Orphaned objects may linger on GitHub's servers until garbage
  * collection, but nothing in the repo links to them anymore.)
  */
-export async function clearUploadedPhotos(settings: GitHubSettings): Promise<void> {
+export async function clearUploadedPhotos(
+  settings: GitHubSettings,
+  prefixes: string[] = ['posts/', 'drafts/'],
+): Promise<void> {
   const repo = await githubJson<{ default_branch: string }>(settings, '')
   const branch = repo.default_branch
   const head = await githubJson<{ object: { sha: string } }>(settings, `/git/ref/heads/${branch}`)
@@ -217,7 +220,7 @@ export async function clearUploadedPhotos(settings: GitHubSettings): Promise<voi
   const remaining = oldTree.tree
     .filter(
       (entry) =>
-        entry.type === 'blob' && !entry.path.startsWith('posts/') && !entry.path.startsWith('drafts/'),
+        entry.type === 'blob' && !prefixes.some((prefix) => entry.path.startsWith(prefix)),
     )
     .map(({ path, mode, type, sha }) => ({ path, mode, type, sha }))
   const newTree = await githubJson<{ sha: string }>(settings, '/git/trees', {
