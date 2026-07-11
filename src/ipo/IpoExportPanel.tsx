@@ -142,6 +142,24 @@ export function IpoExportPanel({ draft }: Props) {
     }
   }
 
+  async function handleWipeIpoData() {
+    if (!settings) return
+    if (
+      !window.confirm(
+        '공모주 카드와 ipo/ 데이터(current.json·아카이브 전체)를 저장소 기록까지 완전히 삭제할까요? 되돌릴 수 없어요.',
+      )
+    ) {
+      return
+    }
+    setCleanupStatus('삭제 중…')
+    try {
+      await clearUploadedPhotos(settings, ['posts/ipo-', 'ipo/'])
+      setCleanupStatus('공모주 카드와 ipo/ 데이터를 기록까지 모두 삭제했어요.')
+    } catch (err) {
+      setCleanupStatus(err instanceof Error ? err.message : '삭제에 실패했어요. 다시 시도해주세요.')
+    }
+  }
+
   function handleResetSettings() {
     clearGitHubSettings()
     setSettings(null)
@@ -197,6 +215,13 @@ export function IpoExportPanel({ draft }: Props) {
               className="mt-2 w-full rounded border border-gray-300 py-2 text-xs text-gray-600 active:bg-gray-50"
             >
               업로드한 공모주 카드 정리 (발행 후에!)
+            </button>
+            <button
+              type="button"
+              onClick={handleWipeIpoData}
+              className="mt-2 w-full rounded border border-red-200 py-2 text-xs text-red-500 active:bg-red-50"
+            >
+              공모주 데이터(JSON)까지 완전 삭제
             </button>
             {cleanupStatus && <p className="mt-2 text-xs text-gray-500">{cleanupStatus}</p>}
 
