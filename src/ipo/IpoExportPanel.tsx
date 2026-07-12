@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react'
-import { zipSync } from 'fflate'
 import { GitHubSetupForm } from '../components/GitHubSetupForm'
 import {
   clearGitHubSettings,
@@ -21,9 +20,9 @@ type Phase =
   | { step: 'idle' }
   | { step: 'rendering' }
   | { step: 'uploading'; done: number; total: number }
-  | { step: 'zipping' }
+  | { step: 'downloading' }
   | { step: 'copied' }
-  | { step: 'zipped' }
+  | { step: 'downloaded' }
   | { step: 'error'; message: string }
 
 /** Blog post embeds cards 1~3 (표지·기업&실적·핵심정보); Instagram gets all six. */
@@ -101,20 +100,19 @@ export function IpoExportPanel({ draft }: Props) {
       })
   }
 
-  async function handleDownloadZip() {
+  async function handleDownloadAll() {
     if (!ready) return
     try {
       setPhase({ step: 'rendering' })
       const blobs = await captureCards(6)
-      setPhase({ step: 'zipping' })
-      const entries: Record<string, Uint8Array> = {}
+      setPhase({ step: 'downloading' })
+      // Spaced out — firing 6 downloads in the same tick makes some browsers
+      // block everything after the first as a "multiple downloads" popup.
       for (const [i, blob] of blobs.entries()) {
-        // PNGs are already compressed — store instead of re-deflating.
-        entries[`ipo_${slug}_card${i + 1}.png`] = new Uint8Array(await blob.arrayBuffer())
+        downloadBlob(blob, `ipo_${slug}_card${i + 1}.png`)
+        if (i < blobs.length - 1) await new Promise((resolve) => setTimeout(resolve, 300))
       }
-      const zipped = zipSync(entries, { level: 0 })
-      downloadBlob(new Blob([zipped.slice().buffer], { type: 'application/zip' }), `ipo_${slug}_cards.zip`)
-      setPhase({ step: 'zipped' })
+      setPhase({ step: 'downloaded' })
     } catch (err) {
       setPhase({
         step: 'error',
@@ -168,7 +166,7 @@ export function IpoExportPanel({ draft }: Props) {
     setPhase({ step: 'idle' })
   }
 
-  const busy = phase.step === 'rendering' || phase.step === 'uploading' || phase.step === 'zipping'
+  const busy = phase.step === 'rendering' || phase.step === 'uploading' || phase.step === 'downloading'
 
   return (
     <div className="mx-auto max-w-xl px-4">
@@ -235,18 +233,18 @@ export function IpoExportPanel({ draft }: Props) {
       </div>
 
       <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
-        <p className="mb-2 text-xs font-semibold text-amber-800">인스타그램용 (카드 6장 zip)</p>
+        <p className="mb-2 text-xs font-semibold text-amber-800">인스타그램용 (카드 6장)</p>
         <button
           type="button"
-          onClick={handleDownloadZip}
+          onClick={handleDownloadAll}
           disabled={busy || !ready}
           className="w-full rounded-lg border border-amber-400 bg-white py-3 text-sm font-medium text-amber-800 active:bg-amber-100 disabled:opacity-50"
         >
-          {phase.step === 'zipping'
-            ? '압축 중…'
-            : phase.step === 'zipped'
+          {phase.step === 'downloading'
+            ? '다운로드 중…'
+            : phase.step === 'downloaded'
               ? '다운로드 완료 ✓ (다시 받기)'
-              : '전체 이미지 다운로드 (.zip)'}
+              : '전체 이미지 6장 다운로드'}
         </button>
       </div>
 
