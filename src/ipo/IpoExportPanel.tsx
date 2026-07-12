@@ -135,8 +135,10 @@ export function IpoExportPanel({ draft }: Props) {
     setCleanupStatus('삭제 중…')
     try {
       // IPO mode only clears its own card uploads — 맛집 사진은 건드리지 않는다.
-      await clearUploadedPhotos(settings, ['posts/ipo-'])
-      setCleanupStatus('업로드한 공모주 카드를 모두 삭제했어요. (맛집 사진·ipo/ 데이터는 그대로예요)')
+      // 한 달 이내 업로드는 남겨둔다 (네이버 웹 에디터가 원본 URL을 계속 참조할
+      // 수 있어 너무 일찍 지우면 이미 발행한 글의 카드 이미지가 깨질 수 있다).
+      await clearUploadedPhotos(settings, ['posts/ipo-'], { olderThanDays: 30 })
+      setCleanupStatus('한 달 넘게 지난 공모주 카드를 정리했어요. (최근 한 달·맛집 사진·ipo/ 데이터는 그대로예요)')
     } catch (err) {
       setCleanupStatus(err instanceof Error ? err.message : '삭제에 실패했어요. 다시 시도해주세요.')
     }
@@ -214,7 +216,7 @@ export function IpoExportPanel({ draft }: Props) {
               onClick={handleCleanup}
               className="mt-2 w-full rounded border border-gray-300 py-2 text-xs text-gray-600 active:bg-gray-50"
             >
-              업로드한 공모주 카드 정리 (발행 후에!)
+              한 달 지난 공모주 카드 정리 (발행 후에!)
             </button>
             <button
               type="button"
