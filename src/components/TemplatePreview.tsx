@@ -69,7 +69,7 @@ export function TemplatePreview({ draft }: Props) {
   ].filter(([, value]) => value.trim() !== '') as [string, string][]
 
   return (
-    <article className="mx-auto max-w-xl bg-white p-5 text-[15px] leading-[1.8] text-[#333]">
+    <article className="mx-auto max-w-xl bg-white p-5 text-[15px] leading-[1.8] text-[#333] [font-family:'Nanum_Gothic','나눔고딕',sans-serif]">
       <h1 className="mb-1 text-[24px] font-bold leading-snug">
         {form.restaurantName || '가게 이름'}
       </h1>

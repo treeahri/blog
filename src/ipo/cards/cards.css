@@ -1,12 +1,13 @@
 /* 공모주 카드뉴스 — 크림톤 스티커 스타일 (1080×1080 고정).
-   래스터라이즈(html-to-image) 호환을 위해 시스템 폰트만 사용한다. */
+   네이버 블로그 기본체(나눔고딕)를 사용하며, index.html에서 로드한 웹폰트가
+   준비된 뒤 래스터라이즈(html-to-image)하도록 rasterize.ts에서 document.fonts.ready를 기다린다. */
 
 .ipo-card {
   width: 1080px;
   height: 1080px;
   box-sizing: border-box;
   position: relative;
-  font-family: 'Apple SD Gothic Neo', 'Pretendard', sans-serif;
+  font-family: '나눔고딕', 'Nanum Gothic', 'Apple SD Gothic Neo', sans-serif;
   color: #2b2b2b;
   background-color: #f2ede3;
   background-image:

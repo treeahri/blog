@@ -1,1 +1,27 @@
 @import "tailwindcss";
+
+/* 네이버 블로그 기본체(나눔고딕). html-to-image 래스터라이즈가 외부 CDN 없이도
+   안정적으로 동작하도록 폰트 파일을 직접 번들링한다 (public/fonts). */
+@font-face {
+  font-family: 'Nanum Gothic';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('/fonts/NanumGothic-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Nanum Gothic';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url('/fonts/NanumGothic-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Nanum Gothic';
+  font-style: normal;
+  font-weight: 800 900;
+  font-display: block;
+  src: url('/fonts/NanumGothic-800.woff2') format('woff2');
+}
