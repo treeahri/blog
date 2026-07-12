@@ -25,8 +25,8 @@ type Phase =
   | { step: 'downloaded' }
   | { step: 'error'; message: string }
 
-/** Blog post embeds cards 1~3 (표지·기업&실적·핵심정보); Instagram gets all six. */
-const BLOG_CARD_COUNT = 3
+/** Blog post now embeds all six cards, same deck the Instagram download uses. */
+const BLOG_CARD_COUNT = 6
 
 export function IpoExportPanel({ draft }: Props) {
   const { data } = draft
@@ -171,7 +171,7 @@ export function IpoExportPanel({ draft }: Props) {
   return (
     <div className="mx-auto max-w-xl px-4">
       <div className="rounded-lg border border-green-200 bg-green-50/50 p-3">
-        <p className="mb-2 text-xs font-semibold text-green-800">블로그 발행 (텍스트+카드 1~3)</p>
+        <p className="mb-2 text-xs font-semibold text-green-800">블로그 발행 (텍스트+카드 6장)</p>
 
         {!settings ? (
           <GitHubSetupForm onSave={(s) => setSettings(s)} />

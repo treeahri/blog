@@ -5,13 +5,13 @@ export { copyTextToClipboard }
 
 /**
  * The post as an ordered list of blocks, mirroring lib/export.ts. The card
- * indexes (1~3) refer to 표지/기업&실적/핵심정보 — only those go into the post;
- * the numbering must match the upload order in IpoExportPanel.
+ * indexes (1~6) refer to 표지/기업&실적/핵심정보/청약일정/포인트&유의/마무리, in
+ * that order — the numbering must match the upload order in IpoExportPanel.
  */
 export type IpoBlock =
   | { kind: 'text'; line: string; style: IpoTextStyle }
   | { kind: 'quote'; lines: string[] }
-  | { kind: 'card'; index: 1 | 2 | 3; alt: string }
+  | { kind: 'card'; index: 1 | 2 | 3 | 4 | 5 | 6; alt: string }
   | { kind: 'hr'; heading: string }
 
 type IpoTextStyle = 'greeting' | 'body' | 'plusHead' | 'minusHead' | 'muted' | 'hashtags'
@@ -57,26 +57,28 @@ export function buildIpoBlocks(data: IpoData): IpoBlock[] {
   blank()
   blocks.push({ kind: 'card', index: 3, alt: `${stock.name} 공모가 경쟁률 핵심 정보` })
   blank()
+  blocks.push({ kind: 'card', index: 4, alt: `${stock.name} 청약 일정` })
+  blank()
   for (const paragraph of body.scheduleParagraphs.filter((p) => p.trim() !== '')) {
     text(paragraph)
     blank()
   }
 
+  blocks.push({ kind: 'hr', heading: '투자 포인트 & 유의사항' })
+  blank()
+  blocks.push({ kind: 'card', index: 5, alt: `${stock.name} 포인트와 유의사항` })
+  blank()
   const plus = cards.points.plus.filter((line) => line.trim() !== '')
   const minus = cards.points.minus.filter((line) => line.trim() !== '')
-  if (plus.length > 0 || minus.length > 0) {
-    blocks.push({ kind: 'hr', heading: '투자 포인트 & 유의사항' })
+  if (plus.length > 0) {
+    text('👍 포인트', 'plusHead')
+    for (const line of plus) text(`· ${line}`)
     blank()
-    if (plus.length > 0) {
-      text('👍 포인트', 'plusHead')
-      for (const line of plus) text(`· ${line}`)
-      blank()
-    }
-    if (minus.length > 0) {
-      text('⚠️ 유의', 'minusHead')
-      for (const line of minus) text(`· ${line}`)
-      blank()
-    }
+  }
+  if (minus.length > 0) {
+    text('⚠️ 유의', 'minusHead')
+    for (const line of minus) text(`· ${line}`)
+    blank()
   }
 
   const checklist = body.checklistLines.filter((line) => line.trim() !== '')
@@ -91,6 +93,8 @@ export function buildIpoBlocks(data: IpoData): IpoBlock[] {
   }
   const hashtags = formatHashtags(body.hashtags)
   if (hashtags) text(hashtags, 'hashtags')
+  blank()
+  blocks.push({ kind: 'card', index: 6, alt: `${stock.name} 청약 성공 기원` })
 
   return blocks
 }
