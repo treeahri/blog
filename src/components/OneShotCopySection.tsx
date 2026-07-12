@@ -80,10 +80,16 @@ export function OneShotCopySection({ draft }: Props) {
     if (!settings) return
     setCleanupStatus('삭제 중…')
     try {
-      await clearUploadedPhotos(settings)
+      // 한 달 이내 사진은 남겨둔다 (네이버 웹 에디터가 원본 URL을 계속 참조할 수
+      // 있어 너무 일찍 지우면 이미 발행한 글의 사진이 깨질 수 있다). 공모주
+      // 카드(posts/ipo-*)는 이 정리 대상이 아니므로 건드리지 않는다.
+      await clearUploadedPhotos(settings, ['posts/', 'drafts/'], {
+        olderThanDays: 30,
+        exclude: ['posts/ipo-'],
+      })
       clearLastUpload()
       setLastUpload(null)
-      setCleanupStatus('저장소의 사진과 동기화된 초안을 모두 삭제하고, 과거 기록도 함께 정리했어요.')
+      setCleanupStatus('한 달 넘게 지난 사진과 동기화된 초안을 정리했어요. (최근 한 달 사진은 남아있어요)')
     } catch (err) {
       setCleanupStatus(err instanceof Error ? err.message : '삭제에 실패했어요. 다시 시도해주세요.')
     }
@@ -130,7 +136,7 @@ export function OneShotCopySection({ draft }: Props) {
             onClick={handleCleanup}
             className="mt-2 w-full rounded border border-gray-300 py-2 text-xs text-gray-600 active:bg-gray-50"
           >
-            저장소 사진 전체 정리 (발행 후에!)
+            한 달 지난 사진 정리 (발행 후에!)
           </button>
           {cleanupStatus && <p className="mt-2 text-xs text-gray-500">{cleanupStatus}</p>}
 

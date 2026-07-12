@@ -188,21 +188,43 @@ interface TreeEntry {
   sha: string
 }
 
+/** Matches the `YYYYMMDD-HHMMSS` folder name uploadFolderName()/timestamp() embed in upload paths. */
+const UPLOAD_DATE_RE = /(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})/
+
+/** Extracts the upload time embedded in a photo folder's path, or null if the path has none (e.g. drafts/current.json). */
+function uploadedAt(path: string): number | null {
+  const m = UPLOAD_DATE_RE.exec(path)
+  if (!m) return null
+  const [, y, mo, d, h, mi, s] = m
+  return new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s)).getTime()
+}
+
 /**
- * Wipes every uploaded photo (and the synced draft) from the repo and rewrites
- * the branch to a single parentless commit of whatever is left (README and the
+ * Wipes uploaded photos (and the synced draft) from the repo and rewrites the
+ * branch to a single parentless commit of whatever is left (README and the
  * like). Photos live under posts/ and the draft snapshot under drafts/, so we
- * drop all blobs under either prefix regardless of which batch they came from
- * — tracking only the last upload stranded earlier ones forever.
+ * drop blobs under either prefix regardless of which batch they came from —
+ * tracking only the last upload stranded earlier ones forever.
  * A plain Contents-API delete would keep every photo browsable in the public
  * repo's history; resetting the history is what actually hides deleted photos
  * from visitors. (Orphaned objects may linger on GitHub's servers until garbage
  * collection, but nothing in the repo links to them anymore.)
+ *
+ * `olderThanDays` limits deletion to paths whose embedded upload timestamp is
+ * older than that many days, leaving recent uploads (e.g. still mid-paste on
+ * the Naver web editor) alone; paths with no embedded timestamp (like
+ * drafts/current.json) are always deleted, matching the pre-existing behavior.
+ * `exclude` paths are always kept regardless of `prefixes` — used to keep this
+ * from sweeping up another mode's uploads that happen to share a prefix root
+ * (e.g. IPO cards under posts/ipo-*).
  */
 export async function clearUploadedPhotos(
   settings: GitHubSettings,
   prefixes: string[] = ['posts/', 'drafts/'],
+  options: { olderThanDays?: number; exclude?: string[] } = {},
 ): Promise<void> {
+  const { olderThanDays, exclude = [] } = options
+  const cutoff = olderThanDays != null ? Date.now() - olderThanDays * 24 * 60 * 60 * 1000 : null
   const repo = await githubJson<{ default_branch: string }>(settings, '')
   const branch = repo.default_branch
   const head = await githubJson<{ object: { sha: string } }>(settings, `/git/ref/heads/${branch}`)
@@ -218,10 +240,14 @@ export async function clearUploadedPhotos(
   // snapshot, so refuse rather than lose data (needs ~100k files to happen).
   if (oldTree.truncated) throw new Error('저장소에 파일이 너무 많아 자동 정리를 못 해요.')
   const remaining = oldTree.tree
-    .filter(
-      (entry) =>
-        entry.type === 'blob' && !prefixes.some((prefix) => entry.path.startsWith(prefix)),
-    )
+    .filter((entry) => {
+      if (entry.type !== 'blob') return false
+      if (exclude.some((ex) => entry.path.startsWith(ex))) return true
+      if (!prefixes.some((prefix) => entry.path.startsWith(prefix))) return true
+      if (cutoff == null) return false
+      const at = uploadedAt(entry.path)
+      return at != null && at >= cutoff
+    })
     .map(({ path, mode, type, sha }) => ({ path, mode, type, sha }))
   const newTree = await githubJson<{ sha: string }>(settings, '/git/trees', {
     method: 'POST',
