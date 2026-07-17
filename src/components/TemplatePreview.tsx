@@ -109,7 +109,7 @@ export function TemplatePreview({ draft }: Props) {
           ) : (
             <PhotoBox placeholder="메뉴판 사진" />
           )}
-          {form.menuNote && <p className="mt-2 text-gray-500">{form.menuNote}</p>}
+          {form.menuNote && <p className="mt-2">{form.menuNote}</p>}
         </section>
       )}
 

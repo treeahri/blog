@@ -175,7 +175,7 @@ function textLineHtml(line: string, style: TextStyle): string {
     case 'title':
       return `<p><span style="font-size: 24px;"><b>${e}</b></span></p>`
     case 'muted':
-      return `<p><span style="color: #888888;">${e}</span></p>`
+      return `<p>${e}</p>`
     case 'section': {
       // 구분선 + 큰 글씨 — quote styles can't survive a paste (verified: even
       // copying a published Naver post degrades its quotes to the default
