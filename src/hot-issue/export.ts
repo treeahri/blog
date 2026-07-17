@@ -80,6 +80,11 @@ export function buildHotIssueBlocks(data: HotIssueData): HotIssueBlock[] {
         }
         break
     }
+
+    if (slide.bodyText && slide.bodyText.trim() !== '') {
+      text(slide.bodyText)
+      blank()
+    }
   })
 
   if (body.closing) {

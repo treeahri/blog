@@ -1,7 +1,13 @@
 import type { ReactNode } from 'react'
 import { PhotoUploader } from '../components/PhotoUploader'
 import { processImageFile } from '../lib/image'
-import { HOT_ISSUE_SLIDE_TYPE_LABEL, type HotIssueCategory, type HotIssueSlideType } from './types'
+import {
+  DEFAULT_IMAGE_POSITION,
+  HOT_ISSUE_SLIDE_TYPE_LABEL,
+  type HotIssueCategory,
+  type HotIssueImagePosition,
+  type HotIssueSlideType,
+} from './types'
 import type { HotIssueDraft } from './useHotIssueDraft'
 
 const inputClass = 'w-full rounded border border-gray-200 px-3 py-2 text-sm'
@@ -37,26 +43,64 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function ImageField({
   label,
   value,
+  position,
+  aspectRatio = '4 / 3',
   onChange,
+  onPositionChange,
 }: {
   label: string
   value: string
+  position: HotIssueImagePosition
+  aspectRatio?: string
   onChange: (dataUrl: string) => void
+  onPositionChange: (position: HotIssueImagePosition) => void
 }) {
   return (
     <div className="flex flex-col gap-2">
       <span className="text-xs font-medium text-gray-500">{label}</span>
       {value ? (
-        <div className="relative w-fit">
-          <img src={value} className="max-h-40 rounded border border-gray-200 object-cover" alt="" />
-          <button
-            type="button"
-            onClick={() => onChange('')}
-            className="absolute right-1 top-1 rounded bg-white/90 px-2 py-0.5 text-xs text-red-500"
+        <>
+          <div
+            className="relative w-full overflow-hidden rounded border border-gray-200 bg-gray-100"
+            style={{ aspectRatio }}
           >
-            삭제
-          </button>
-        </div>
+            <img
+              src={value}
+              className="h-full w-full object-cover"
+              style={{ objectPosition: `${position.x}% ${position.y}%` }}
+              alt=""
+            />
+            <button
+              type="button"
+              onClick={() => onChange('')}
+              className="absolute right-1 top-1 rounded bg-white/90 px-2 py-0.5 text-xs text-red-500"
+            >
+              삭제
+            </button>
+          </div>
+          <label className="flex items-center gap-2 text-xs text-gray-500">
+            <span className="w-16 flex-none">가로 위치</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={position.x}
+              onChange={(e) => onPositionChange({ ...position, x: Number(e.target.value) })}
+              className="flex-1"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-xs text-gray-500">
+            <span className="w-16 flex-none">세로 위치</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={position.y}
+              onChange={(e) => onPositionChange({ ...position, y: Number(e.target.value) })}
+              className="flex-1"
+            />
+          </label>
+        </>
       ) : (
         <PhotoUploader
           onFilesSelected={(files) => {
@@ -243,7 +287,10 @@ export function HotIssueForm({ draft }: { draft: HotIssueDraft }) {
               <ImageField
                 label="이미지"
                 value={slide.imageDataUrl}
+                position={slide.imagePosition ?? DEFAULT_IMAGE_POSITION}
+                aspectRatio="4 / 3"
                 onChange={(dataUrl) => updateSlide(slide.id, { imageDataUrl: dataUrl })}
+                onPositionChange={(imagePosition) => updateSlide(slide.id, { imagePosition })}
               />
               <Field label="이미지 설명 타이틀">
                 <input
@@ -280,7 +327,10 @@ export function HotIssueForm({ draft }: { draft: HotIssueDraft }) {
                     <ImageField
                       label={side === 'left' ? '왼쪽 이미지' : '오른쪽 이미지'}
                       value={slide[side].imageDataUrl}
+                      position={slide[side].imagePosition ?? DEFAULT_IMAGE_POSITION}
+                      aspectRatio="1 / 1"
                       onChange={(dataUrl) => setCompareSide(slide.id, side, { imageDataUrl: dataUrl })}
+                      onPositionChange={(imagePosition) => setCompareSide(slide.id, side, { imagePosition })}
                     />
                     <Field label="라벨">
                       <input
@@ -365,6 +415,15 @@ export function HotIssueForm({ draft }: { draft: HotIssueDraft }) {
               </Field>
             </>
           )}
+
+          <Field label="본문 문단 (카드 이미지에는 안 들어가고, 블로그 글 텍스트에만 추가돼요)">
+            <textarea
+              className={textareaClass}
+              rows={3}
+              value={slide.bodyText ?? ''}
+              onChange={(e) => updateSlide(slide.id, { bodyText: e.target.value })}
+            />
+          </Field>
         </SlideChrome>
       ))}
 

@@ -1,11 +1,22 @@
+export interface HotIssueImagePosition {
+  /** 0–100, percentage from the left/top — same units as CSS object-position. */
+  x: number
+  y: number
+}
+
+export const DEFAULT_IMAGE_POSITION: HotIssueImagePosition = { x: 50, y: 50 }
+
 export interface HotIssueImageBlock {
   imageDataUrl: string
+  imagePosition: HotIssueImagePosition
   label: string
   body: string
 }
 
 interface HotIssueSlideBase {
   id: string
+  /** Free paragraph for the blog post body under this card — independent of whatever text is baked into the card image itself. */
+  bodyText: string
 }
 
 export type HotIssueSlide =
@@ -15,6 +26,7 @@ export type HotIssueSlide =
       type: 'imageText'
       title: string
       imageDataUrl: string
+      imagePosition: HotIssueImagePosition
       caption: string
       body: string
     })
@@ -73,25 +85,36 @@ function newId(): string {
 
 export function createEmptySlide(type: HotIssueSlideType): HotIssueSlide {
   const id = newId()
+  const bodyText = ''
   switch (type) {
     case 'cover':
-      return { id, type, badge: 'daReviewDa', title: '', subtitle: '' }
+      return { id, bodyText, type, badge: 'daReviewDa', title: '', subtitle: '' }
     case 'quote':
-      return { id, type, title: '', highlight: '', body: '' }
+      return { id, bodyText, type, title: '', highlight: '', body: '' }
     case 'imageText':
-      return { id, type, title: '', imageDataUrl: '', caption: '', body: '' }
+      return {
+        id,
+        bodyText,
+        type,
+        title: '',
+        imageDataUrl: '',
+        imagePosition: { ...DEFAULT_IMAGE_POSITION },
+        caption: '',
+        body: '',
+      }
     case 'imageCompare':
       return {
         id,
+        bodyText,
         type,
         title: '',
-        left: { imageDataUrl: '', label: '', body: '' },
-        right: { imageDataUrl: '', label: '', body: '' },
+        left: { imageDataUrl: '', imagePosition: { ...DEFAULT_IMAGE_POSITION }, label: '', body: '' },
+        right: { imageDataUrl: '', imagePosition: { ...DEFAULT_IMAGE_POSITION }, label: '', body: '' },
       }
     case 'checklist':
-      return { id, type, title: '', items: [''] }
+      return { id, bodyText, type, title: '', items: [''] }
     case 'outro':
-      return { id, type, title: '', message: '' }
+      return { id, bodyText, type, title: '', message: '' }
   }
 }
 

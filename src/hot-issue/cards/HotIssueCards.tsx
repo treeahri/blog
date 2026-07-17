@@ -1,13 +1,22 @@
-import type { HotIssueData, HotIssueSlide } from '../types'
+import { DEFAULT_IMAGE_POSITION, type HotIssueData, type HotIssueImagePosition, type HotIssueSlide } from '../types'
 import './cards.css'
 
 const WATERMARK = 'daReviewDa'
 
 type SlideOf<T extends HotIssueSlide['type']> = Extract<HotIssueSlide, { type: T }>
 
-function SlideImage({ src, alt }: { src: string; alt: string }) {
+function SlideImage({
+  src,
+  alt,
+  position,
+}: {
+  src: string
+  alt: string
+  position?: HotIssueImagePosition
+}) {
   if (!src) return <div className="image-placeholder">이미지 없음</div>
-  return <img src={src} alt={alt} />
+  const { x, y } = position ?? DEFAULT_IMAGE_POSITION
+  return <img src={src} alt={alt} style={{ objectPosition: `${x}% ${y}%` }} />
 }
 
 function SlideCover({ slide }: { slide: SlideOf<'cover'> }) {
@@ -23,13 +32,15 @@ function SlideCover({ slide }: { slide: SlideOf<'cover'> }) {
 
 function SlideQuote({ slide }: { slide: SlideOf<'quote'> }) {
   return (
-    <div className="quote-slide">
+    <>
       <h2 className="heading">{slide.title}</h2>
-      <div className="quote-box">
-        <p className="quote-highlight">{slide.highlight}</p>
+      <div className="quote-content">
+        <div className="quote-box">
+          <p className="quote-highlight">{slide.highlight}</p>
+        </div>
+        <p className="quote-body">{slide.body}</p>
       </div>
-      <p className="quote-body">{slide.body}</p>
-    </div>
+    </>
   )
 }
 
@@ -38,7 +49,7 @@ function SlideImageText({ slide }: { slide: SlideOf<'imageText'> }) {
     <>
       <h2 className="heading">{slide.title}</h2>
       <div className="single-image">
-        <SlideImage src={slide.imageDataUrl} alt={slide.caption || slide.title} />
+        <SlideImage src={slide.imageDataUrl} alt={slide.caption || slide.title} position={slide.imagePosition} />
       </div>
       <p className="image-caption">{slide.caption}</p>
       <p className="image-body">{slide.body}</p>
@@ -54,7 +65,7 @@ function SlideImageCompare({ slide }: { slide: SlideOf<'imageCompare'> }) {
         {[slide.left, slide.right].map((side, i) => (
           <div className="compare-col" key={i}>
             <div className="compare-image">
-              <SlideImage src={side.imageDataUrl} alt={side.label} />
+              <SlideImage src={side.imageDataUrl} alt={side.label} position={side.imagePosition} />
             </div>
             <p className="compare-label">{side.label}</p>
             <p className="compare-body">{side.body}</p>

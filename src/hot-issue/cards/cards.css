@@ -50,7 +50,7 @@
 
 .hi-card .heading {
   flex: none;
-  margin-top: 48px;
+  margin-top: 0;
   font-size: 52px;
   font-weight: 900;
   line-height: 1.3;
@@ -111,7 +111,7 @@
 }
 
 /* ── 핵심 문구 강조 (인용) ── */
-.hi-card .quote-slide {
+.hi-card .quote-content {
   flex: 1;
   width: 100%;
   display: flex;
@@ -120,7 +120,7 @@
 }
 
 .hi-card .quote-box {
-  margin-top: 48px;
+  margin-top: 0;
   width: 100%;
   background: #faf3e3;
   border: 3px solid #1f1f1f;
