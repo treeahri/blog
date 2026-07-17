@@ -10,6 +10,7 @@ import {
 import { blobToBase64, captureCardPng, downloadBlob } from '../lib/rasterize'
 import { HotIssueCardDeck } from './cards/HotIssueCards'
 import { buildHotIssueHtml, buildHotIssueText, copyTextToClipboard } from './export'
+import { saveHotIssueDataToGitHub } from './hotIssueStorage'
 import type { HotIssueDraft } from './useHotIssueDraft'
 
 interface Props {
@@ -32,6 +33,8 @@ export function HotIssueExportPanel({ draft }: Props) {
   const [cleanupStatus, setCleanupStatus] = useState<string | null>(null)
   const [titleCopied, setTitleCopied] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [syncStatus, setSyncStatus] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
   const cardRefs = useRef(new Map<number, HTMLElement>())
 
   const slug = data.slug || 'hot-issue'
@@ -119,6 +122,21 @@ export function HotIssueExportPanel({ draft }: Props) {
     }
   }
 
+  /** Overwrites hot-issue/current.json with the in-app draft (e.g. after attaching photos on mobile). */
+  async function handleSaveDraft() {
+    if (!settings) return
+    setSyncing(true)
+    setSyncStatus('저장 중…')
+    try {
+      await saveHotIssueDataToGitHub(settings, data)
+      setSyncStatus('저장소에 초안을 저장했어요. 다른 기기에서 "저장소에서 불러오기"를 누르면 이어서 작업할 수 있어요.')
+    } catch (err) {
+      setSyncStatus(err instanceof Error ? err.message : '저장에 실패했어요.')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   async function handleCopyTitle() {
     if (await copyTextToClipboard(data.body.postTitle)) {
       setTitleCopied(true)
@@ -166,6 +184,24 @@ export function HotIssueExportPanel({ draft }: Props) {
 
   return (
     <div className="mx-auto max-w-xl px-4">
+      {settings && (
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/50 p-3">
+          <p className="mb-2 text-xs font-semibold text-blue-800">기기 간 초안 동기화</p>
+          <p className="mb-2 text-xs text-gray-600">
+            예: 모바일에서 사진 첨부 후 저장 → 데스크톱에서 불러와 이어서 발행.
+          </p>
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={syncing}
+            className="w-full rounded-lg border border-blue-300 bg-white py-2.5 text-sm font-medium text-blue-700 active:bg-blue-50 disabled:opacity-50"
+          >
+            {syncing ? '저장 중…' : '초안 저장 (저장소에 덮어쓰기)'}
+          </button>
+          {syncStatus && <p className="mt-2 text-xs text-gray-500">{syncStatus}</p>}
+        </div>
+      )}
+
       <div className="rounded-lg border border-sky-200 bg-sky-50/50 p-3">
         <p className="mb-2 text-xs font-semibold text-sky-800">블로그 발행 (텍스트+카드 {cardCount}장)</p>
 
