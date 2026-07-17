@@ -1,0 +1,5 @@
+{
+  "owner": "treeahri",
+  "repo": "blog-image",
+  "token": "github_pat_XXXX (Contents read/write 권한의 fine-grained PAT, ipo-card-news 스킬과 같은 토큰을 재사용해도 됨)"
+}

@@ -12,8 +12,13 @@ dist
 dist-ssr
 *.local
 
-# 클로드
+# 클로드 (기본은 로컬 전용. naver-blog-review 스킬만 예외적으로 git에 커밋)
 .claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/naver-blog-review/
+.claude/skills/naver-blog-review/config.local.json
+.claude/skills/naver-blog-review/output/
 
 # Editor directories and files
 .vscode/*
