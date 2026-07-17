@@ -7,13 +7,13 @@ import {
   uploadPhotoToGitHub,
   type GitHubSettings,
 } from '../lib/github'
-import { IpoCardDeck } from './cards/IpoCards'
-import { buildIpoHtml, buildIpoText, copyTextToClipboard } from './export'
 import { blobToBase64, captureCardPng, downloadBlob } from '../lib/rasterize'
-import type { IpoDraft } from './useIpoDraft'
+import { HotIssueCardDeck } from './cards/HotIssueCards'
+import { buildHotIssueHtml, buildHotIssueText, copyTextToClipboard } from './export'
+import type { HotIssueDraft } from './useHotIssueDraft'
 
 interface Props {
-  draft: IpoDraft
+  draft: HotIssueDraft
 }
 
 type Phase =
@@ -25,10 +25,7 @@ type Phase =
   | { step: 'downloaded' }
   | { step: 'error'; message: string }
 
-/** Blog post now embeds all six cards, same deck the Instagram download uses. */
-const BLOG_CARD_COUNT = 6
-
-export function IpoExportPanel({ draft }: Props) {
+export function HotIssueExportPanel({ draft }: Props) {
   const { data } = draft
   const [settings, setSettings] = useState<GitHubSettings | null>(loadGitHubSettings)
   const [phase, setPhase] = useState<Phase>({ step: 'idle' })
@@ -37,10 +34,11 @@ export function IpoExportPanel({ draft }: Props) {
   const [exporting, setExporting] = useState(false)
   const cardRefs = useRef(new Map<number, HTMLElement>())
 
-  const slug = data.slug || 'ipo'
-  const ready = data.status === 'ready' && data.stock.name.trim() !== ''
+  const slug = data.slug || 'hot-issue'
+  const cardCount = data.slides.length
+  const ready = cardCount > 0 && data.meta.topic.trim() !== ''
 
-  /** Mounts the hidden deck, captures the first `count` cards, then unmounts. */
+  /** Mounts the hidden deck, captures every slide, then unmounts. */
   async function captureCards(count: number): Promise<Blob[]> {
     setExporting(true)
     try {
@@ -67,19 +65,19 @@ export function IpoExportPanel({ draft }: Props) {
     setPhase({ step: 'rendering' })
     setCleanupStatus(null)
 
-    const folder = `posts/ipo-${slug}-${timestamp()}`
+    const folder = `posts/hot-issue-${slug}-${timestamp()}`
     const htmlPromise = (async () => {
-      const blobs = await captureCards(BLOG_CARD_COUNT)
+      const blobs = await captureCards(cardCount)
       const urlByCardIndex = new Map<number, string>()
       setPhase({ step: 'uploading', done: 0, total: blobs.length })
       // Sequential on purpose: parallel commits to the same branch conflict.
       for (const [i, blob] of blobs.entries()) {
-        const path = `${folder}/ipo_${slug}_card${i + 1}.png`
+        const path = `${folder}/hot-issue_${slug}_card${i + 1}.png`
         const uploaded = await uploadPhotoToGitHub(settings, path, await blobToBase64(blob))
         urlByCardIndex.set(i + 1, uploaded.url)
         setPhase({ step: 'uploading', done: i + 1, total: blobs.length })
       }
-      return new Blob([buildIpoHtml(data, urlByCardIndex)], { type: 'text/html' })
+      return new Blob([buildHotIssueHtml(data, urlByCardIndex)], { type: 'text/html' })
     })()
 
     // clipboard.write is called synchronously with promise values so the
@@ -88,7 +86,7 @@ export function IpoExportPanel({ draft }: Props) {
       .write([
         new ClipboardItem({
           'text/html': htmlPromise,
-          'text/plain': new Blob([buildIpoText(data)], { type: 'text/plain' }),
+          'text/plain': new Blob([buildHotIssueText(data)], { type: 'text/plain' }),
         }),
       ])
       .then(() => setPhase({ step: 'copied' }))
@@ -104,12 +102,12 @@ export function IpoExportPanel({ draft }: Props) {
     if (!ready) return
     try {
       setPhase({ step: 'rendering' })
-      const blobs = await captureCards(6)
+      const blobs = await captureCards(cardCount)
       setPhase({ step: 'downloading' })
-      // Spaced out — firing 6 downloads in the same tick makes some browsers
+      // Spaced out — firing many downloads in the same tick makes some browsers
       // block everything after the first as a "multiple downloads" popup.
       for (const [i, blob] of blobs.entries()) {
-        downloadBlob(blob, `ipo_${slug}_card${i + 1}.png`)
+        downloadBlob(blob, `hot-issue_${slug}_card${i + 1}.png`)
         if (i < blobs.length - 1) await new Promise((resolve) => setTimeout(resolve, 300))
       }
       setPhase({ step: 'downloaded' })
@@ -132,29 +130,27 @@ export function IpoExportPanel({ draft }: Props) {
     if (!settings) return
     setCleanupStatus('삭제 중…')
     try {
-      // IPO mode only clears its own card uploads — 맛집 사진은 건드리지 않는다.
-      // 한 달 이내 업로드는 남겨둔다 (네이버 웹 에디터가 원본 URL을 계속 참조할
-      // 수 있어 너무 일찍 지우면 이미 발행한 글의 카드 이미지가 깨질 수 있다).
-      await clearUploadedPhotos(settings, ['posts/ipo-'], { olderThanDays: 30 })
-      setCleanupStatus('한 달 넘게 지난 공모주 카드를 정리했어요. (최근 한 달·맛집 사진·ipo/ 데이터는 그대로예요)')
+      // 핫이슈 모드는 posts/hot-issue-* 업로드만 정리한다 — 맛집·공모주 사진은 그대로.
+      await clearUploadedPhotos(settings, ['posts/hot-issue-'], { olderThanDays: 30 })
+      setCleanupStatus('한 달 넘게 지난 핫이슈 카드를 정리했어요. (최근 한 달·다른 모드 데이터는 그대로예요)')
     } catch (err) {
       setCleanupStatus(err instanceof Error ? err.message : '삭제에 실패했어요. 다시 시도해주세요.')
     }
   }
 
-  async function handleWipeIpoData() {
+  async function handleWipeHotIssueData() {
     if (!settings) return
     if (
       !window.confirm(
-        '공모주 카드와 ipo/ 데이터(current.json·아카이브 전체)를 저장소 기록까지 완전히 삭제할까요? 되돌릴 수 없어요.',
+        '핫이슈 카드와 hot-issue/ 데이터를 저장소 기록까지 완전히 삭제할까요? 되돌릴 수 없어요.',
       )
     ) {
       return
     }
     setCleanupStatus('삭제 중…')
     try {
-      await clearUploadedPhotos(settings, ['posts/ipo-', 'ipo/'])
-      setCleanupStatus('공모주 카드와 ipo/ 데이터를 기록까지 모두 삭제했어요.')
+      await clearUploadedPhotos(settings, ['posts/hot-issue-', 'hot-issue/'])
+      setCleanupStatus('핫이슈 카드와 hot-issue/ 데이터를 기록까지 모두 삭제했어요.')
     } catch (err) {
       setCleanupStatus(err instanceof Error ? err.message : '삭제에 실패했어요. 다시 시도해주세요.')
     }
@@ -170,8 +166,8 @@ export function IpoExportPanel({ draft }: Props) {
 
   return (
     <div className="mx-auto max-w-xl px-4">
-      <div className="rounded-lg border border-green-200 bg-green-50/50 p-3">
-        <p className="mb-2 text-xs font-semibold text-green-800">블로그 발행 (텍스트+카드 6장)</p>
+      <div className="rounded-lg border border-sky-200 bg-sky-50/50 p-3">
+        <p className="mb-2 text-xs font-semibold text-sky-800">블로그 발행 (텍스트+카드 {cardCount}장)</p>
 
         {!settings ? (
           <GitHubSetupForm onSave={(s) => setSettings(s)} />
@@ -181,7 +177,7 @@ export function IpoExportPanel({ draft }: Props) {
               type="button"
               onClick={handleOneShotCopy}
               disabled={busy || !ready}
-              className="w-full rounded-lg bg-green-600 py-3 text-sm font-medium text-white active:bg-green-700 disabled:opacity-50"
+              className="w-full rounded-lg bg-sky-600 py-3 text-sm font-medium text-white active:bg-sky-700 disabled:opacity-50"
             >
               {phase.step === 'rendering'
                 ? '카드 이미지 만드는 중…'
@@ -196,7 +192,7 @@ export function IpoExportPanel({ draft }: Props) {
               type="button"
               onClick={handleCopyTitle}
               disabled={!ready}
-              className="mt-2 w-full rounded border border-green-300 py-2 text-xs text-green-800 active:bg-green-100 disabled:opacity-50"
+              className="mt-2 w-full rounded border border-sky-300 py-2 text-xs text-sky-800 active:bg-sky-100 disabled:opacity-50"
             >
               {titleCopied ? '제목 복사됨 ✓' : '글 제목만 복사'}
             </button>
@@ -214,14 +210,14 @@ export function IpoExportPanel({ draft }: Props) {
               onClick={handleCleanup}
               className="mt-2 w-full rounded border border-gray-300 py-2 text-xs text-gray-600 active:bg-gray-50"
             >
-              한 달 지난 공모주 카드 정리 (발행 후에!)
+              한 달 지난 핫이슈 카드 정리 (발행 후에!)
             </button>
             <button
               type="button"
-              onClick={handleWipeIpoData}
+              onClick={handleWipeHotIssueData}
               className="mt-2 w-full rounded border border-red-200 py-2 text-xs text-red-500 active:bg-red-50"
             >
-              공모주 데이터(JSON)까지 완전 삭제
+              핫이슈 데이터(JSON)까지 완전 삭제
             </button>
             {cleanupStatus && <p className="mt-2 text-xs text-gray-500">{cleanupStatus}</p>}
 
@@ -233,7 +229,7 @@ export function IpoExportPanel({ draft }: Props) {
       </div>
 
       <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
-        <p className="mb-2 text-xs font-semibold text-amber-800">인스타그램용 (카드 6장)</p>
+        <p className="mb-2 text-xs font-semibold text-amber-800">인스타그램용 (카드 {cardCount}장)</p>
         <button
           type="button"
           onClick={handleDownloadAll}
@@ -244,7 +240,7 @@ export function IpoExportPanel({ draft }: Props) {
             ? '다운로드 중…'
             : phase.step === 'downloaded'
               ? '다운로드 완료 ✓ (다시 받기)'
-              : '전체 이미지 6장 다운로드'}
+              : `전체 이미지 ${cardCount}장 다운로드`}
         </button>
       </div>
 
@@ -252,10 +248,13 @@ export function IpoExportPanel({ draft }: Props) {
           so the DOM stays light; fixed off-screen, never transformed. */}
       {exporting && (
         <div style={{ position: 'fixed', left: -20000, top: 0, zIndex: -1 }} aria-hidden>
-          <IpoCardDeck data={data} onCardRef={(i, el) => {
-            if (el) cardRefs.current.set(i, el)
-            else cardRefs.current.delete(i)
-          }} />
+          <HotIssueCardDeck
+            data={data}
+            onCardRef={(i, el) => {
+              if (el) cardRefs.current.set(i, el)
+              else cardRefs.current.delete(i)
+            }}
+          />
         </div>
       )}
     </div>
