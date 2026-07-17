@@ -23,14 +23,13 @@ function SlideCover({ slide }: { slide: SlideOf<'cover'> }) {
 
 function SlideQuote({ slide }: { slide: SlideOf<'quote'> }) {
   return (
-    <>
+    <div className="quote-slide">
       <h2 className="heading">{slide.title}</h2>
       <div className="quote-box">
-        <p className="quote-mark">“</p>
         <p className="quote-highlight">{slide.highlight}</p>
       </div>
       <p className="quote-body">{slide.body}</p>
-    </>
+    </div>
   )
 }
 
