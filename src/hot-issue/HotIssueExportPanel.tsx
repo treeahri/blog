@@ -11,6 +11,7 @@ import { blobToBase64, captureCardPng, downloadBlob } from '../lib/rasterize'
 import { HotIssueCardDeck } from './cards/HotIssueCards'
 import { buildHotIssueHtml, buildHotIssueText, copyTextToClipboard } from './export'
 import { saveHotIssueDataToGitHub } from './hotIssueStorage'
+import { HOT_ISSUE_SLIDE_TYPE_LABEL } from './types'
 import type { HotIssueDraft } from './useHotIssueDraft'
 
 interface Props {
@@ -35,6 +36,9 @@ export function HotIssueExportPanel({ draft }: Props) {
   const [exporting, setExporting] = useState(false)
   const [syncStatus, setSyncStatus] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
+  const [fallbackTextCopied, setFallbackTextCopied] = useState(false)
+  const [copiedCardIndices, setCopiedCardIndices] = useState<ReadonlySet<number>>(new Set())
+  const [fallbackStatus, setFallbackStatus] = useState<string | null>(null)
   const cardRefs = useRef(new Map<number, HTMLElement>())
 
   const slug = data.slug || 'hot-issue'
@@ -56,6 +60,51 @@ export function HotIssueExportPanel({ draft }: Props) {
       return blobs
     } finally {
       setExporting(false)
+    }
+  }
+
+  /** Mounts the hidden deck, captures one slide, then unmounts. */
+  async function captureSingleCard(index: number): Promise<Blob> {
+    setExporting(true)
+    try {
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      const el = cardRefs.current.get(index)
+      if (!el) throw new Error(`카드 ${index + 1} 요소를 찾지 못했어요.`)
+      return await captureCardPng(el)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  function handleCopyCard(index: number) {
+    if (typeof ClipboardItem === 'undefined' || !navigator.clipboard?.write) {
+      setFallbackStatus('이 브라우저는 카드 복사를 지원하지 않아요. 대신 저장 버튼으로 받아 에디터에 끌어다 놓아주세요.')
+      return
+    }
+    setFallbackStatus(null)
+    // Passed as a promise (not awaited first) so the user-gesture window survives capture time (Safari requirement).
+    const pngPromise = captureSingleCard(index)
+    navigator.clipboard
+      .write([new ClipboardItem({ 'image/png': pngPromise })])
+      .then(() => setCopiedCardIndices((prev) => new Set(prev).add(index)))
+      .catch((err: unknown) => {
+        setFallbackStatus(err instanceof Error ? err.message : '복사에 실패했어요. 다시 시도해주세요.')
+      })
+  }
+
+  async function handleDownloadSingleCard(index: number) {
+    try {
+      const blob = await captureSingleCard(index)
+      downloadBlob(blob, `hot-issue_${slug}_card${index + 1}.png`)
+    } catch (err) {
+      setFallbackStatus(err instanceof Error ? err.message : '다운로드에 실패했어요. 다시 시도해주세요.')
+    }
+  }
+
+  async function handleCopyFullText() {
+    if (await copyTextToClipboard(buildHotIssueText(data))) {
+      setFallbackTextCopied(true)
+      setFallbackStatus('텍스트를 복사했어요. 네이버 에디터에 붙여넣은 뒤, 아래에서 카드를 하나씩 복사해 (📷 카드 N) 자리에 붙여넣으세요.')
     }
   }
 
@@ -279,6 +328,66 @@ export function HotIssueExportPanel({ draft }: Props) {
               : `전체 이미지 ${cardCount}장 다운로드`}
         </button>
       </div>
+
+      <details className="mt-4">
+        <summary className="cursor-pointer text-xs font-medium text-gray-500">
+          예비 방식: 텍스트 따로, 카드 하나씩 복사
+        </summary>
+
+        <ol className="my-3 list-decimal space-y-1 pl-5 text-xs text-gray-500">
+          <li>아래 버튼으로 글 전체 텍스트를 복사해 네이버 에디터에 붙여넣기</li>
+          <li>에디터에서 「(📷 카드 N …)」 줄을 지우고 그 자리를 클릭</li>
+          <li>여기서 해당 번호의 카드를 복사한 뒤 에디터에 붙여넣기(⌘V) — 카드 수만큼 반복</li>
+        </ol>
+
+        <button
+          type="button"
+          onClick={handleCopyFullText}
+          disabled={!ready}
+          className="w-full rounded-lg bg-sky-600 py-3 text-sm font-medium text-white active:bg-sky-700 disabled:opacity-50"
+        >
+          {fallbackTextCopied ? '텍스트 복사됨 ✓ (다시 복사)' : '1단계 · 전체 텍스트 복사'}
+        </button>
+
+        {fallbackStatus && <p className="mt-3 text-xs text-gray-600">{fallbackStatus}</p>}
+
+        {cardCount > 0 && (
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-medium text-gray-500">2단계 · 카드 하나씩 복사해 붙여넣기</p>
+            <div className="flex flex-col gap-2">
+              {data.slides.map((slide, i) => {
+                const copied = copiedCardIndices.has(i)
+                return (
+                  <div key={slide.id} className="flex items-center gap-3 rounded border border-gray-200 p-2">
+                    <span className="flex-1 truncate text-sm text-gray-600">
+                      카드 {i + 1} — {HOT_ISSUE_SLIDE_TYPE_LABEL[slide.type]}
+                      {copied && <span className="ml-1 text-green-600">✓</span>}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyCard(i)}
+                      className={`rounded px-3 py-1.5 text-xs font-medium ${
+                        copied
+                          ? 'bg-green-50 text-green-700 active:bg-green-100'
+                          : 'bg-sky-600 text-white active:bg-sky-700'
+                      }`}
+                    >
+                      {copied ? '다시 복사' : '복사'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadSingleCard(i)}
+                      className="rounded bg-gray-100 px-3 py-1.5 text-xs text-gray-700 active:bg-gray-200"
+                    >
+                      저장
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </details>
 
       {/* Hidden full-size deck for rasterization — mounted only while exporting
           so the DOM stays light; fixed off-screen, never transformed. */}
