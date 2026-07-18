@@ -19,6 +19,7 @@ const ADDABLE_SLIDE_TYPES: HotIssueSlideType[] = [
   'imageText',
   'imageCompare',
   'checklist',
+  'table',
   'outro',
 ]
 
@@ -390,6 +391,63 @@ export function HotIssueForm({ draft }: { draft: HotIssueDraft }) {
                   className="self-start text-xs text-green-700 underline"
                 >
                   + 항목 추가
+                </button>
+              </div>
+            </>
+          )}
+
+          {slide.type === 'table' && (
+            <>
+              <Field label="상단 제목">
+                <input
+                  type="text"
+                  className={inputClass}
+                  value={slide.title}
+                  onChange={(e) => updateSlide(slide.id, { title: e.target.value })}
+                />
+              </Field>
+              <Field label="열 제목 — 셀은 | 로 구분 (마지막 열이 파란색 강조)">
+                <input
+                  type="text"
+                  className={inputClass}
+                  value={slide.columns.join('|')}
+                  onChange={(e) => updateSlide(slide.id, { columns: e.target.value.split('|') })}
+                />
+              </Field>
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-medium text-gray-500">행 — 셀은 | 로 구분</span>
+                {slide.rows.map((row, rowIndex) => (
+                  <div key={rowIndex} className="flex items-start gap-2">
+                    <input
+                      type="text"
+                      className={inputClass}
+                      value={row.join('|')}
+                      onChange={(e) =>
+                        updateSlide(slide.id, {
+                          rows: slide.rows.map((r, i) => (i === rowIndex ? e.target.value.split('|') : r)),
+                        })
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateSlide(slide.id, { rows: slide.rows.filter((_, i) => i !== rowIndex) })
+                      }
+                      className="mt-1 flex-none text-xs text-gray-300 active:text-red-400"
+                      aria-label="행 삭제"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateSlide(slide.id, { rows: [...slide.rows, slide.columns.map(() => '')] })
+                  }
+                  className="self-start text-xs text-green-700 underline"
+                >
+                  + 행 추가
                 </button>
               </div>
             </>

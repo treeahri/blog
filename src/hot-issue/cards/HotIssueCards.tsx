@@ -92,6 +92,33 @@ function SlideChecklist({ slide }: { slide: SlideOf<'checklist'> }) {
   )
 }
 
+function SlideTable({ slide }: { slide: SlideOf<'table'> }) {
+  const rows = slide.rows.filter((row) => row.some((cell) => cell.trim() !== ''))
+  return (
+    <>
+      <h2 className="heading">{slide.title}</h2>
+      <table className="data-table">
+        <thead>
+          <tr>
+            {slide.columns.map((col, i) => (
+              <th key={i}>{col.trim()}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, r) => (
+            <tr key={r}>
+              {row.map((cell, c) => (
+                <td key={c}>{cell.trim()}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  )
+}
+
 function SlideOutro({ slide }: { slide: SlideOf<'outro'> }) {
   return (
     <>
@@ -113,6 +140,8 @@ function SlideBody({ slide }: { slide: HotIssueSlide }) {
       return <SlideImageCompare slide={slide} />
     case 'checklist':
       return <SlideChecklist slide={slide} />
+    case 'table':
+      return <SlideTable slide={slide} />
     case 'outro':
       return <SlideOutro slide={slide} />
   }

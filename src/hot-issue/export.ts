@@ -73,6 +73,17 @@ export function buildHotIssueBlocks(data: HotIssueData): HotIssueBlock[] {
         }
         break
       }
+      case 'table': {
+        const rows = slide.rows
+          .map((row) => row.map((cell) => cell.trim()))
+          .filter((row) => row.some((cell) => cell !== ''))
+          .map((row) => row.join(' | '))
+        if (rows.length > 0) {
+          blocks.push({ kind: 'quote', lines: [`**${slide.columns.map((c) => c.trim()).join(' | ')}**`, ...rows] })
+          blank()
+        }
+        break
+      }
       case 'outro':
         if (slide.message) {
           text(slide.message)

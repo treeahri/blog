@@ -37,6 +37,7 @@ export type HotIssueSlide =
       right: HotIssueImageBlock
     })
   | (HotIssueSlideBase & { type: 'checklist'; title: string; items: string[] })
+  | (HotIssueSlideBase & { type: 'table'; title: string; columns: string[]; rows: string[][] })
   | (HotIssueSlideBase & { type: 'outro'; title: string; message: string })
 
 export type HotIssueSlideType = HotIssueSlide['type']
@@ -47,6 +48,7 @@ export const HOT_ISSUE_SLIDE_TYPE_LABEL: Record<HotIssueSlideType, string> = {
   imageText: '이미지 + 텍스트',
   imageCompare: '이미지 비교',
   checklist: '체크리스트',
+  table: '표',
   outro: '마무리',
 }
 
@@ -113,6 +115,8 @@ export function createEmptySlide(type: HotIssueSlideType): HotIssueSlide {
       }
     case 'checklist':
       return { id, bodyText, type, title: '', items: [''] }
+    case 'table':
+      return { id, bodyText, type, title: '', columns: ['구분', ''], rows: [['', '']] }
     case 'outro':
       return { id, bodyText, type, title: '', message: '' }
   }
