@@ -79,7 +79,9 @@ export function buildHotIssueBlocks(data: HotIssueData): HotIssueBlock[] {
           .filter((row) => row.some((cell) => cell !== ''))
           .map((row) => row.join(' | '))
         if (rows.length > 0) {
-          blocks.push({ kind: 'quote', lines: [`**${slide.columns.map((c) => c.trim()).join(' | ')}**`, ...rows] })
+          const lines = [`**${slide.columns.map((c) => c.trim()).join(' | ')}**`, ...rows]
+          if (slide.note?.trim()) lines.push(slide.note.trim())
+          blocks.push({ kind: 'quote', lines })
           blank()
         }
         break

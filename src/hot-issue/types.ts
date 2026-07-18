@@ -37,7 +37,7 @@ export type HotIssueSlide =
       right: HotIssueImageBlock
     })
   | (HotIssueSlideBase & { type: 'checklist'; title: string; items: string[] })
-  | (HotIssueSlideBase & { type: 'table'; title: string; columns: string[]; rows: string[][] })
+  | (HotIssueSlideBase & { type: 'table'; title: string; columns: string[]; rows: string[][]; note?: string })
   | (HotIssueSlideBase & { type: 'outro'; title: string; message: string })
 
 export type HotIssueSlideType = HotIssueSlide['type']
@@ -116,7 +116,7 @@ export function createEmptySlide(type: HotIssueSlideType): HotIssueSlide {
     case 'checklist':
       return { id, bodyText, type, title: '', items: [''] }
     case 'table':
-      return { id, bodyText, type, title: '', columns: ['구분', ''], rows: [['', '']] }
+      return { id, bodyText, type, title: '', columns: ['구분', ''], rows: [['', '']], note: '' }
     case 'outro':
       return { id, bodyText, type, title: '', message: '' }
   }

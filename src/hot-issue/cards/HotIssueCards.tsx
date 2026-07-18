@@ -115,6 +115,7 @@ function SlideTable({ slide }: { slide: SlideOf<'table'> }) {
           ))}
         </tbody>
       </table>
+      {slide.note?.trim() ? <p className="table-note">{slide.note}</p> : null}
     </>
   )
 }

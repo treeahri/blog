@@ -450,6 +450,14 @@ export function HotIssueForm({ draft }: { draft: HotIssueDraft }) {
                   + 행 추가
                 </button>
               </div>
+              <Field label="표 아래 참고 문구 (선택)">
+                <input
+                  type="text"
+                  className={inputClass}
+                  value={slide.note ?? ''}
+                  onChange={(e) => updateSlide(slide.id, { note: e.target.value })}
+                />
+              </Field>
             </>
           )}
 
