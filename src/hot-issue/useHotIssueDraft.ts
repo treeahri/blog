@@ -123,7 +123,9 @@ export function useHotIssueDraft() {
   async function loadFromRepo(settings: GitHubSettings): Promise<'loaded' | 'empty' | 'cancelled'> {
     const fresh = await loadHotIssueDataFromGitHub(settings)
     if (!fresh) return 'empty'
-    const hasLocalEdits = data.status === 'ready' && data.generatedAt !== fresh.generatedAt
+    // generatedAt comparison misses edits made on top of the same generation
+    // (e.g. a photo attached after loading), so compare actual content.
+    const hasLocalEdits = data.status === 'ready' && JSON.stringify(data) !== JSON.stringify(fresh)
     if (hasLocalEdits && !window.confirm('저장소의 최신 데이터로 바꿀까요? 지금 수정 중인 내용은 사라져요.')) {
       return 'cancelled'
     }
